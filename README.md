@@ -4,7 +4,7 @@
 
 日々の売上を整数円で正確に記録し、店舗・担当者・商品・顧客・支払方法の視点へ集計して、経営判断に使える情報へ変換する Web 業務システムです。登録不要のブラウザ内デモと、Firebase Authentication / Cloud Firestore を使う実データモードを備えています。
 
-> 画面に表示される人物、会社、店舗、連絡先、取引はすべて架空です。公開デモURLは未設定です。GitHubリポジトリは <https://github.com/shunsoco-stack/sales-management> です。
+> 画面に表示される人物、会社、店舗、連絡先、取引はすべて架空です。公開デモURLとGitHubリポジトリは公開準備中です。
 
 ## Demo
 
