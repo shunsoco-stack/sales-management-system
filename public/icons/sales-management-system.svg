@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">売上管理システム</title>
+  <desc id="desc">売上の棒グラフと上昇推移を組み合わせたアイコン</desc>
+  <defs>
+    <linearGradient id="background" x1="72" y1="34" x2="438" y2="478" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F8FBFF"/>
+      <stop offset="0.52" stop-color="#EAF3FF"/>
+      <stop offset="1" stop-color="#DCEBFF"/>
+    </linearGradient>
+    <linearGradient id="panel" x1="158" y1="114" x2="366" y2="398" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.98"/>
+      <stop offset="1" stop-color="#F4F8FF" stop-opacity="0.96"/>
+    </linearGradient>
+    <linearGradient id="bars" x1="192" y1="330" x2="324" y2="196" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0A84FF"/>
+      <stop offset="1" stop-color="#4D63FF"/>
+    </linearGradient>
+    <filter id="shadow" x="72" y="58" width="368" height="408" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="18" stdDeviation="20" flood-color="#2A5CAA" flood-opacity="0.18"/>
+    </filter>
+  </defs>
+  <rect x="20" y="20" width="472" height="472" rx="112" fill="url(#background)"/>
+  <rect x="21" y="21" width="470" height="470" rx="111" fill="none" stroke="#FFFFFF" stroke-opacity="0.9" stroke-width="2"/>
+  <g filter="url(#shadow)">
+    <path d="M128 112C128 94.3 142.3 80 160 80H352C369.7 80 384 94.3 384 112V410L364 396L344 410L324 396L304 410L284 396L264 410L244 396L224 410L204 396L184 410L164 396L144 410L128 398V112Z" fill="url(#panel)"/>
+    <path d="M160 81H352C369.1 81 383 94.9 383 112V118H129V112C129 94.9 142.9 81 160 81Z" fill="#E7F1FF"/>
+    <path d="M174 146H300" stroke="#C4D6EE" stroke-width="12" stroke-linecap="round"/>
+    <path d="M174 174H254" stroke="#D5E2F3" stroke-width="10" stroke-linecap="round"/>
+    <rect x="176" y="286" width="34" height="62" rx="10" fill="url(#bars)" fill-opacity="0.68"/>
+    <rect x="230" y="252" width="34" height="96" rx="10" fill="url(#bars)" fill-opacity="0.82"/>
+    <rect x="284" y="214" width="34" height="134" rx="10" fill="url(#bars)"/>
+    <path d="M174 271L226 236L266 250L332 184" fill="none" stroke="#0B6EEA" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M301 184H332V215" fill="none" stroke="#0B6EEA" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+</svg>

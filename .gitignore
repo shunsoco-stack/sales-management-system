@@ -1,0 +1,79 @@
+# Dependencies
+node_modules/
+
+# Framework, tests, and generated output
+.next/
+out/
+dist/
+build/
+coverage/
+tmp/
+.tools/
+output/
+.vercel/
+*.tsbuildinfo
+next-env.d.ts
+
+# Firebase local state and logs
+.firebase/
+.firebase-config/
+.firebaserc
+!.firebaserc.example
+firebase-debug.log*
+firestore-debug.log*
+storage-debug.log*
+ui-debug.log*
+
+# Local environment files
+.env
+.env.*
+!.env.example
+
+# Additional credential and generated-file safety
+!.env.*.example
+*serviceAccount*.json
+*service-account*.json
+credentials*.json
+firebase-adminsdk*.json
+admin-sdk*.json
+*.pem
+*.key
+*.p8
+*.ppk
+*.p12
+*.pfx
+*.der
+*.jks
+*.keystore
+.envrc
+.direnv/
+.runtimeconfig.json
+/dist/
+/build/
+/tmp/
+/.temp/
+/.cache/
+/.turbo/
+/.vercel/
+.eslintcache
+*.log
+
+# Credentials and private keys
+.npmrc
+!.npmrc.example
+service-account*.json
+*serviceAccount*.json
+firebase-adminsdk*.json
+credentials*.json
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+
+# Logs and OS files
+*.log
+*.log.*
+.DS_Store
+Thumbs.db

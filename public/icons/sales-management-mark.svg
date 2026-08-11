@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title">
+  <title id="title">売上管理システム アイコンマーク</title>
+  <defs>
+    <linearGradient id="mark" x1="52" y1="202" x2="202" y2="50" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0A84FF"/>
+      <stop offset="1" stop-color="#4D63FF"/>
+    </linearGradient>
+  </defs>
+  <rect x="30" y="132" width="38" height="78" rx="11" fill="url(#mark)" fill-opacity="0.62"/>
+  <rect x="90" y="96" width="38" height="114" rx="11" fill="url(#mark)" fill-opacity="0.8"/>
+  <rect x="150" y="54" width="38" height="156" rx="11" fill="url(#mark)"/>
+  <path d="M30 112L86 76L128 91L218 24" fill="none" stroke="#0769DF" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M180 24H218V62" fill="none" stroke="#0769DF" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

@@ -1,0 +1,775 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function userPath() {
+      return /databases/$(database)/documents/users/$(request.auth.uid);
+    }
+
+    function organizationPath(organizationId) {
+      return /databases/$(database)/documents/organizations/$(organizationId);
+    }
+
+    function auditPath(auditId) {
+      return /databases/$(database)/documents/auditLogs/$(auditId);
+    }
+
+    function userExists() {
+      return signedIn() && exists(userPath());
+    }
+
+    function userData() {
+      return get(userPath()).data;
+    }
+
+    function validRole(role) {
+      return role in ['admin', 'manager', 'user', 'viewer'];
+    }
+
+    function activeUser() {
+      let profile = userData();
+      return userExists()
+        && profile.isActive == true
+        && validRole(profile.role)
+        && profile.organizationId is string
+        && exists(organizationPath(profile.organizationId))
+        && get(organizationPath(profile.organizationId)).data.isActive == true;
+    }
+
+    function currentOrganizationId() {
+      return userData().organizationId;
+    }
+
+    function hasRole(roles) {
+      return activeUser() && userData().role in roles;
+    }
+
+    function isAdmin() {
+      return hasRole(['admin']);
+    }
+
+    function isManagerOrAdmin() {
+      return hasRole(['admin', 'manager']);
+    }
+
+    function isSalesEditor() {
+      return hasRole(['admin', 'manager', 'user']);
+    }
+
+    function sameOrganization(data) {
+      return activeUser() && data.organizationId == currentOrganizationId();
+    }
+
+    function locationAllowed(locationId) {
+      let profile = userData();
+      return locationId is string
+        && (
+          profile.role == 'admin'
+          || locationId == 'all'
+          || (
+            'allowedLocationIds' in profile
+            && profile.allowedLocationIds is list
+            && locationId in profile.allowedLocationIds
+          )
+        );
+    }
+
+    function canAccessLocation(locationId) {
+      return activeUser() && locationAllowed(locationId);
+    }
+
+    function sameAccessibleScope(data) {
+      let profile = userData();
+      return activeUser()
+        && data.organizationId == profile.organizationId
+        && data.locationId is string
+        && (
+          profile.role == 'admin'
+          || data.locationId == 'all'
+          || (
+            'allowedLocationIds' in profile
+            && profile.allowedLocationIds is list
+            && data.locationId in profile.allowedLocationIds
+          )
+        );
+    }
+
+    function validNonEmptyString(value, maximumLength) {
+      return value is string && value.size() > 0 && value.size() <= maximumLength;
+    }
+
+    function validOptionalString(data, field, maximumLength) {
+      return !(field in data)
+        || (data[field] is string && data[field].size() <= maximumLength);
+    }
+
+    function validDateTime(value) {
+      return value is timestamp
+        || (
+          value is string
+          && value.size() >= 20
+          && value.size() <= 35
+          && value.matches('^\\d{4}-\\d{2}-\\d{2}T.*(?:Z|[+-]\\d{2}:\\d{2})$')
+        );
+    }
+
+    function validMoney(value) {
+      return value is int && value >= 0 && value <= 1000000000;
+    }
+
+    function validTaxRate(value) {
+      return value is int && value >= 0 && value <= 10000;
+    }
+
+    function validAuditFields(data) {
+      return data.createdBy is string
+        && data.updatedBy is string
+        && validDateTime(data.createdAt)
+        && validDateTime(data.updatedAt);
+    }
+
+    function isInitialBootstrapFor(data) {
+      return signedIn()
+        && !userExists()
+        && getAfter(userPath()).data.id == request.auth.uid
+        && getAfter(userPath()).data.organizationId == data.organizationId
+        && getAfter(userPath()).data.role == 'admin'
+        && getAfter(userPath()).data.isActive == true
+        && getAfter(userPath()).data.createdBy == request.auth.uid;
+    }
+
+    function validScopedCreate(data, documentId) {
+      return data.keys().hasAll([
+          'id', 'organizationId', 'locationId',
+          'createdAt', 'createdBy', 'updatedAt', 'updatedBy'
+        ])
+        && data.id == documentId
+        && validNonEmptyString(data.organizationId, 128)
+        && validNonEmptyString(data.locationId, 128)
+        && data.createdBy == request.auth.uid
+        && data.updatedBy == request.auth.uid
+        && validAuditFields(data)
+        && (
+          isInitialBootstrapFor(data)
+          || (
+            activeUser()
+            && data.organizationId == currentOrganizationId()
+            && canAccessLocation(data.locationId)
+          )
+        );
+    }
+
+    function validAuthenticatedScopedCreate(data, documentId) {
+      return data.keys().hasAll([
+          'id', 'organizationId', 'locationId',
+          'createdAt', 'createdBy', 'updatedAt', 'updatedBy'
+        ])
+        && data.id == documentId
+        && data.createdBy == request.auth.uid
+        && data.updatedBy == request.auth.uid
+        && validAuditFields(data)
+        && sameAccessibleScope(data);
+    }
+
+    function validScopedUpdate() {
+      return sameAccessibleScope(resource.data)
+        && request.resource.data.id == resource.data.id
+        && request.resource.data.organizationId == resource.data.organizationId
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.createdBy == resource.data.createdBy
+        && request.resource.data.updatedBy == request.auth.uid
+        && validDateTime(request.resource.data.updatedAt)
+        && locationAllowed(request.resource.data.locationId);
+    }
+
+    function validAuditReference(data, entityType, entityId) {
+      let audit = getAfter(auditPath(data.lastAuditId)).data;
+      return data.lastAuditId is string
+        && !exists(auditPath(data.lastAuditId))
+        && audit.entityType == entityType
+        && audit.entityId == entityId;
+    }
+
+    function validSaleItem(item, sale) {
+      let expectedSubtotal = item.quantity * item.unitPriceYen;
+      let expectedTaxable = expectedSubtotal - item.discountYen;
+      let expectedTax = int(expectedTaxable * item.taxRateBps / 10000);
+      return item is map
+        && item.saleId == sale.id
+        && item.organizationId == sale.organizationId
+        && item.locationId == sale.locationId
+        && item.quantity is int
+        && item.quantity > 0
+        && item.quantity <= 10000
+        && validMoney(item.unitPriceYen)
+        && validMoney(item.unitCostYen)
+        && item.subtotalYen == expectedSubtotal
+        && validMoney(expectedSubtotal)
+        && validMoney(item.discountYen)
+        && validTaxRate(item.taxRateBps)
+        && item.discountYen <= expectedSubtotal
+        && item.taxableAmountYen == expectedTaxable
+        && item.taxYen == expectedTax
+        && item.totalYen == expectedTaxable + expectedTax
+        && validMoney(item.totalYen);
+    }
+
+    function validSaleItemFinancials(item, sale) {
+      let subtotal = item.quantity * item.unitPriceYen;
+      let taxable = subtotal - item.discountYen;
+      let tax = int(taxable * item.taxRateBps / 10000);
+      return item.quantity is int
+        && item.saleId == sale.id
+        && item.organizationId == sale.organizationId
+        && item.locationId == sale.locationId
+        && validNonEmptyString(item.productId, 160)
+        && item.quantity > 0
+        && item.quantity <= 10000
+        && item.unitPriceYen is int
+        && item.unitPriceYen >= 0
+        && item.unitCostYen is int
+        && item.unitCostYen >= 0
+        && item.unitCostYen <= 1000000000
+        && item.discountYen is int
+        && item.discountYen >= 0
+        && item.taxRateBps is int
+        && item.taxRateBps >= 0
+        && item.taxRateBps <= 10000
+        && item.subtotalYen == subtotal
+        && item.subtotalYen <= 1000000000
+        && item.discountYen <= subtotal
+        && item.taxableAmountYen == taxable
+        && item.taxYen == tax
+        && item.totalYen == taxable + tax
+        && item.totalYen <= 1000000000;
+    }
+
+    function sumTwoItems(items, field) {
+      return items[0][field]
+        + (items.size() > 1 ? items[1][field] : 0);
+    }
+
+    function validSaleAggregate(data) {
+      // taxableAmountYen and totalYen follow from these three exact sums plus
+      // the transaction-level equations validated below.
+      return data.subtotalYen == sumTwoItems(data.items, 'subtotalYen')
+        && data.discountYen == sumTwoItems(data.items, 'discountYen')
+        && data.taxYen == sumTwoItems(data.items, 'taxYen');
+    }
+
+    function validSaleFinancialUpdate(data) {
+      return data.items is list
+        && data.items.size() > 0
+        && data.items.size() <= 2
+        && validSaleItemFinancials(data.items[0], data)
+        && (data.items.size() < 2 || validSaleItemFinancials(data.items[1], data))
+        && data.subtotalYen is int
+        && data.subtotalYen <= 1000000000
+        && data.discountYen is int
+        && data.taxableAmountYen is int
+        && data.taxYen is int
+        && data.totalYen is int
+        && data.totalYen <= 1000000000
+        && data.refundedAmountYen == resource.data.refundedAmountYen
+        && data.discountYen <= data.subtotalYen
+        && data.taxableAmountYen == data.subtotalYen - data.discountYen
+        && data.totalYen == data.taxableAmountYen + data.taxYen
+        && validSaleAggregate(data);
+    }
+
+    function validSaleMetadataUpdate(data) {
+      return validDateTime(data.soldAt)
+        && validNonEmptyString(data.staffId, 160)
+        && validNonEmptyString(data.paymentMethodId, 160)
+        && validOptionalString(data, 'memo', 10000)
+        && data.saleType in ['retail', 'service', 'subscription', 'other'];
+    }
+
+    function validSale(data) {
+      return data.locationId != 'all'
+        && validNonEmptyString(data.transactionNumber, 80)
+        && validDateTime(data.soldAt)
+        && validNonEmptyString(data.staffId, 160)
+        && validNonEmptyString(data.paymentMethodId, 160)
+        && data.saleType in ['retail', 'service', 'subscription', 'other']
+        && data.status in [
+          'confirmed', 'pending', 'cancelled', 'refunded', 'partially_refunded'
+        ]
+        && validOptionalString(data, 'memo', 10000)
+        && data.items is list
+        && data.items.size() > 0
+        && data.items.size() <= 2
+        && validSaleItem(data.items[0], data)
+        && (data.items.size() < 2 || validSaleItem(data.items[1], data))
+        && validMoney(data.subtotalYen)
+        && validMoney(data.discountYen)
+        && validMoney(data.taxableAmountYen)
+        && validMoney(data.taxYen)
+        && validMoney(data.totalYen)
+        && validMoney(data.refundedAmountYen)
+        && data.discountYen <= data.subtotalYen
+        && data.taxableAmountYen == data.subtotalYen - data.discountYen
+        && data.totalYen == data.taxableAmountYen + data.taxYen
+        && data.refundedAmountYen <= data.totalYen
+        && validSaleAggregate(data);
+    }
+
+    function isOwnSale(data) {
+      return 'staffId' in userData()
+        && data.staffId == userData().staffId;
+    }
+
+    function canReadSale(data) {
+      return data.locationId != 'all'
+        && sameAccessibleScope(data)
+        && (
+          hasRole(['admin', 'manager', 'viewer'])
+          || (hasRole(['user']) && isOwnSale(data))
+        );
+    }
+
+    function validNormalSaleUpdate() {
+      return request.resource.data.refundedAmountYen
+          == resource.data.refundedAmountYen
+        && (
+          request.resource.data.status == resource.data.status
+          || (
+            resource.data.status == 'pending'
+            && request.resource.data.status == 'confirmed'
+          )
+        );
+    }
+
+    function validCancellation() {
+      return userData().role == 'admin'
+        && resource.data.status in ['pending', 'confirmed']
+        && request.resource.data.status == 'cancelled'
+        && request.resource.data.refundedAmountYen == 0
+        && request.resource.data.cancelledBy == request.auth.uid
+        && validDateTime(request.resource.data.cancelledAt)
+        && validNonEmptyString(request.resource.data.cancellationReason, 1000)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'status', 'refundedAmountYen', 'cancelledAt', 'cancelledBy',
+          'cancellationReason', 'updatedAt', 'updatedBy', 'lastAuditId'
+        ]);
+    }
+
+    function validRefund() {
+      return userData().role == 'admin'
+        && resource.data.status in ['confirmed', 'partially_refunded']
+        && request.resource.data.status in ['refunded', 'partially_refunded']
+        && request.resource.data.refundedAmountYen > resource.data.refundedAmountYen
+        && (
+          (
+            request.resource.data.status == 'refunded'
+            && request.resource.data.refundedAmountYen == request.resource.data.totalYen
+          )
+          || (
+            request.resource.data.status == 'partially_refunded'
+            && request.resource.data.refundedAmountYen < request.resource.data.totalYen
+          )
+        )
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'status', 'refundedAmountYen', 'updatedAt', 'updatedBy', 'lastAuditId'
+        ]);
+    }
+
+    function validNormalSaleEditor() {
+      let financialFieldsChanged = request.resource.data.diff(resource.data)
+        .affectedKeys().hasAny([
+          'items', 'subtotalYen', 'discountYen', 'taxableAmountYen',
+          'taxYen', 'totalYen'
+        ]);
+      return resource.data.status != 'cancelled'
+        && resource.data.status != 'refunded'
+        && resource.data.status != 'partially_refunded'
+        && validNormalSaleUpdate()
+        && validSaleMetadataUpdate(request.resource.data)
+        && (
+          !financialFieldsChanged
+          || validSaleFinancialUpdate(request.resource.data)
+        )
+        && (
+          userData().role in ['admin', 'manager']
+          || (
+            userData().role == 'user'
+            && isOwnSale(resource.data)
+            && request.resource.data.staffId == resource.data.staffId
+          )
+        )
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'soldAt', 'customerId', 'customerName', 'staffId', 'staffName',
+          'items', 'subtotalYen', 'discountYen', 'taxableAmountYen',
+          'taxYen', 'totalYen',
+          'paymentMethodId', 'paymentMethodName', 'saleType', 'status', 'memo',
+          'updatedAt', 'updatedBy', 'lastAuditId'
+        ]);
+    }
+
+    function validSaleUpdateDocument(saleId) {
+      let audit = getAfter(
+        auditPath(request.resource.data.lastAuditId)
+      ).data;
+      return validScopedUpdate()
+        && validAuditReference(request.resource.data, 'sale', saleId)
+        && audit.before.updatedAt == resource.data.updatedAt;
+    }
+
+    function validProduct(data) {
+      return validNonEmptyString(data.code, 80)
+        && validNonEmptyString(data.name, 200)
+        && data.productType in ['product', 'service']
+        && validNonEmptyString(data.categoryId, 160)
+        && validMoney(data.priceYen)
+        && validMoney(data.costYen)
+        && data.costYen <= data.priceYen
+        && validTaxRate(data.taxRateBps)
+        && data.isActive is bool;
+    }
+
+    function validCustomer(data) {
+      return validNonEmptyString(data.name, 200)
+        && data.customerType in ['individual', 'corporate']
+        && validOptionalString(data, 'phone', 40)
+        && validOptionalString(data, 'email', 320)
+        && data.tags is list
+        && data.tags.size() <= 30
+        && data.purchaseCount is int
+        && data.purchaseCount >= 0
+        && validMoney(data.totalSalesYen)
+        && validMoney(data.averagePurchaseYen)
+        && data.isActive is bool;
+    }
+
+    function validStaff(data) {
+      return validNonEmptyString(data.name, 200)
+        && validNonEmptyString(data.email, 320)
+        && validRole(data.role)
+        && validMoney(data.monthlySalesTargetYen)
+        && data.isActive is bool;
+    }
+
+    function validLocation(data) {
+      return validNonEmptyString(data.code, 80)
+        && validNonEmptyString(data.name, 200)
+        && validOptionalString(data, 'address', 500)
+        && validOptionalString(data, 'phone', 40)
+        && data.isActive is bool;
+    }
+
+    function validGoal(data) {
+      return data.targetType in ['organization', 'location', 'staff']
+        && validNonEmptyString(data.targetId, 160)
+        && data.periodType in ['monthly', 'yearly']
+        && validNonEmptyString(data.periodKey, 7)
+        && validMoney(data.targetYen)
+        && data.isActive is bool;
+    }
+
+    function validAuditLog(data, auditId) {
+      return data.id == auditId
+        && sameAccessibleScope(data)
+        && data.createdBy == request.auth.uid
+        && data.updatedBy == request.auth.uid
+        && data.action in [
+          'create', 'update', 'cancel', 'refund',
+          'permission_change', 'settings_change'
+        ]
+        && data.entityType in [
+          'sale', 'product', 'customer', 'goal',
+          'staff', 'location', 'settings'
+        ]
+        && validNonEmptyString(data.entityId, 160)
+        && validNonEmptyString(data.actorName, 200)
+        && validNonEmptyString(data.summary, 1000)
+        && validAuditFields(data);
+    }
+
+    function auditTargetCollection(entityType) {
+      return entityType == 'sale' ? 'sales'
+        : entityType == 'product' ? 'products'
+        : entityType == 'customer' ? 'customers'
+        : entityType == 'staff' ? 'staff'
+        : entityType == 'location' ? 'locations'
+        : entityType == 'settings' ? 'settings'
+        : 'goals';
+    }
+
+    function auditTargetWasWritten(data, auditId) {
+      let collectionName = auditTargetCollection(data.entityType);
+      let target = getAfter(
+        /databases/$(database)/documents/$(collectionName)/$(data.entityId)
+      ).data;
+      return target.lastAuditId == auditId
+        && target.organizationId == data.organizationId
+        && target.locationId == data.locationId
+        && target.updatedBy == request.auth.uid;
+    }
+
+    match /organizations/{organizationId} {
+      allow create: if isInitialBootstrapFor(request.resource.data)
+        && request.resource.data.id == organizationId
+        && request.resource.data.organizationId == organizationId
+        && request.resource.data.locationId == 'all'
+        && request.resource.data.ownerId == request.auth.uid
+        && request.resource.data.isActive == true
+        && request.resource.data.isDemo == false
+        && validAuditFields(request.resource.data);
+      allow read: if activeUser() && currentOrganizationId() == organizationId;
+      allow update: if isAdmin()
+        && currentOrganizationId() == organizationId
+        && request.resource.data.id == resource.data.id
+        && request.resource.data.organizationId == resource.data.organizationId
+        && request.resource.data.ownerId == resource.data.ownerId
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.createdBy == resource.data.createdBy
+        && request.resource.data.updatedBy == request.auth.uid
+        && validDateTime(request.resource.data.updatedAt);
+      allow delete: if false;
+    }
+
+    match /users/{userId} {
+      allow read: if signedIn()
+        && (
+          userId == request.auth.uid
+          || (
+            isManagerOrAdmin()
+            && resource.data.organizationId == currentOrganizationId()
+          )
+        );
+      allow create: if signedIn()
+        && !userExists()
+        && userId == request.auth.uid
+        && request.resource.data.id == userId
+        && request.resource.data.userId == userId
+        && request.resource.data.role == 'admin'
+        && request.resource.data.isActive == true
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.updatedBy == request.auth.uid
+        && getAfter(
+          organizationPath(request.resource.data.organizationId)
+        ).data.ownerId == request.auth.uid
+        && validAuditFields(request.resource.data);
+      allow update: if activeUser()
+        && userId == request.auth.uid
+        && request.resource.data.organizationId == resource.data.organizationId
+        && request.resource.data.locationId == resource.data.locationId
+        && request.resource.data.allowedLocationIds == resource.data.allowedLocationIds
+        && request.resource.data.role == resource.data.role
+        && request.resource.data.isActive == resource.data.isActive
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.createdBy == resource.data.createdBy
+        && request.resource.data.updatedBy == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'name', 'displayName', 'email', 'updatedAt', 'updatedBy'
+        ]);
+      allow delete: if false;
+    }
+
+    match /locations/{locationId} {
+      allow read: if sameAccessibleScope(resource.data);
+      allow create: if (
+          isInitialBootstrapFor(request.resource.data)
+          || isAdmin()
+        )
+        && validScopedCreate(request.resource.data, locationId)
+        && validLocation(request.resource.data)
+        && (
+          isInitialBootstrapFor(request.resource.data)
+          || validAuditReference(request.resource.data, 'location', locationId)
+        );
+      allow update: if isAdmin()
+        && validScopedUpdate()
+        && validLocation(request.resource.data)
+        && validAuditReference(request.resource.data, 'location', locationId);
+      allow delete: if false;
+    }
+
+    match /staff/{staffId} {
+      allow read: if sameAccessibleScope(resource.data);
+      allow create: if (
+          isInitialBootstrapFor(request.resource.data)
+          || isAdmin()
+        )
+        && validScopedCreate(request.resource.data, staffId)
+        && validStaff(request.resource.data)
+        && (
+          isInitialBootstrapFor(request.resource.data)
+          || validAuditReference(request.resource.data, 'staff', staffId)
+        );
+      allow update: if isAdmin()
+        && validScopedUpdate()
+        && validStaff(request.resource.data)
+        && validAuditReference(request.resource.data, 'staff', staffId);
+      allow delete: if false;
+    }
+
+    match /sales/{saleId} {
+      allow read: if canReadSale(resource.data);
+      allow create: if validAuthenticatedScopedCreate(request.resource.data, saleId)
+        && userData().role in ['admin', 'manager', 'user']
+        && (
+          userData().role != 'user'
+          || request.resource.data.staffId == userData().staffId
+        )
+        && request.resource.data.status in ['confirmed', 'pending']
+        && request.resource.data.refundedAmountYen == 0
+        && validSale(request.resource.data)
+        && validAuditReference(request.resource.data, 'sale', saleId);
+      allow update: if (
+          validCancellation()
+          || validRefund()
+          || validNormalSaleEditor()
+        )
+        && validSaleUpdateDocument(saleId);
+      allow delete: if false;
+    }
+
+    match /products/{productId} {
+      allow read: if sameAccessibleScope(resource.data);
+      allow create: if isManagerOrAdmin()
+        && validAuthenticatedScopedCreate(request.resource.data, productId)
+        && validProduct(request.resource.data)
+        && validAuditReference(request.resource.data, 'product', productId);
+      allow update: if isManagerOrAdmin()
+        && validScopedUpdate()
+        && validProduct(request.resource.data)
+        && validAuditReference(request.resource.data, 'product', productId);
+      allow delete: if false;
+    }
+
+    match /customers/{customerId} {
+      allow read: if sameAccessibleScope(resource.data);
+      allow create: if isManagerOrAdmin()
+        && validAuthenticatedScopedCreate(request.resource.data, customerId)
+        && validCustomer(request.resource.data)
+        && request.resource.data.purchaseCount == 0
+        && request.resource.data.totalSalesYen == 0
+        && request.resource.data.averagePurchaseYen == 0
+        && validAuditReference(request.resource.data, 'customer', customerId);
+      allow update: if isManagerOrAdmin()
+        && validScopedUpdate()
+        && validCustomer(request.resource.data)
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny([
+          'purchaseCount', 'totalSalesYen', 'averagePurchaseYen', 'lastPurchaseAt'
+        ])
+        && validAuditReference(request.resource.data, 'customer', customerId);
+      allow delete: if false;
+    }
+
+    match /goals/{goalId} {
+      allow read: if sameAccessibleScope(resource.data)
+        && hasRole(['admin', 'manager', 'viewer']);
+      allow create: if isAdmin()
+        && validAuthenticatedScopedCreate(request.resource.data, goalId)
+        && validGoal(request.resource.data)
+        && validAuditReference(request.resource.data, 'goal', goalId);
+      allow update: if isAdmin()
+        && validScopedUpdate()
+        && validGoal(request.resource.data)
+        && validAuditReference(request.resource.data, 'goal', goalId);
+      allow delete: if false;
+    }
+
+    match /categories/{categoryId} {
+      allow read: if sameAccessibleScope(resource.data);
+      allow create: if (
+          isInitialBootstrapFor(request.resource.data)
+          || isAdmin()
+        )
+        && validScopedCreate(request.resource.data, categoryId)
+        && validNonEmptyString(request.resource.data.code, 80)
+        && validNonEmptyString(request.resource.data.name, 200)
+        && request.resource.data.isActive is bool;
+      allow update: if isAdmin()
+        && validScopedUpdate()
+        && validNonEmptyString(request.resource.data.name, 200)
+        && request.resource.data.isActive is bool;
+      allow delete: if false;
+    }
+
+    match /paymentMethods/{paymentMethodId} {
+      allow read: if sameAccessibleScope(resource.data);
+      allow create: if (
+          isInitialBootstrapFor(request.resource.data)
+          || isAdmin()
+        )
+        && validScopedCreate(request.resource.data, paymentMethodId)
+        && validNonEmptyString(request.resource.data.code, 80)
+        && validNonEmptyString(request.resource.data.name, 120)
+        && request.resource.data.sortOrder is int
+        && request.resource.data.isActive is bool;
+      allow update: if isAdmin()
+        && validScopedUpdate()
+        && validNonEmptyString(request.resource.data.name, 120)
+        && request.resource.data.sortOrder is int
+        && request.resource.data.isActive is bool;
+      allow delete: if false;
+    }
+
+    match /settings/{settingsId} {
+      allow read: if sameAccessibleScope(resource.data);
+      allow create: if (
+          isInitialBootstrapFor(request.resource.data)
+          || isAdmin()
+        )
+        && validScopedCreate(request.resource.data, settingsId)
+        && request.resource.data.currency == 'JPY'
+        && validTaxRate(request.resource.data.defaultTaxRateBp);
+      allow update: if isAdmin()
+        && validScopedUpdate()
+        && request.resource.data.currency == 'JPY'
+        && validTaxRate(request.resource.data.defaultTaxRateBp)
+        && validAuditReference(request.resource.data, 'settings', settingsId);
+      allow delete: if false;
+    }
+
+    match /auditLogs/{auditId} {
+      allow read: if sameAccessibleScope(resource.data)
+        && isManagerOrAdmin();
+      allow create: if validAuditLog(request.resource.data, auditId)
+        && auditTargetWasWritten(request.resource.data, auditId);
+      allow update, delete: if false;
+    }
+
+    match /saleItems/{itemId} {
+      // Canonical line items are embedded in the sale document and inherit
+      // its row-level rule. The flat seed copy is reserved for trusted jobs.
+      allow read, write: if false;
+    }
+
+    match /dailySummaries/{summaryId} {
+      allow read: if sameAccessibleScope(resource.data)
+        && hasRole(['admin', 'manager', 'viewer']);
+      allow write: if false;
+    }
+
+    match /monthlySummaries/{summaryId} {
+      allow read: if sameAccessibleScope(resource.data)
+        && hasRole(['admin', 'manager', 'viewer']);
+      allow write: if false;
+    }
+
+    match /dimensionSummaries/{summaryId} {
+      allow read: if sameAccessibleScope(resource.data)
+        && hasRole(['admin', 'manager', 'viewer']);
+      allow write: if false;
+    }
+
+    match /operationLocks/{lockId} {
+      allow read, write: if false;
+    }
+
+    match /saleCounters/{counterId} {
+      allow read, write: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
