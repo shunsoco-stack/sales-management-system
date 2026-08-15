@@ -16,11 +16,11 @@ Demo Modeの変更は閲覧者のブラウザ内に保存され、Firebaseの共
 
 ## Screenshots
 
-![主要機能とデモ導線を示すランディング画面](docs/screenshots/landing-desktop.png)
+![主要機能とデモ導線を示すランディング画面](docs/screenshots/landing-desktop.jpg)
 
-![売上KPIと推移を確認できるダッシュボード](docs/screenshots/dashboard-desktop.png)
+![売上KPIと推移を確認できるダッシュボード](docs/screenshots/dashboard-desktop.jpg)
 
-![明細、割引、税を確認しながら登録する売上フォーム](docs/screenshots/sales-form-desktop.png)
+![明細、割引、税を確認しながら登録する売上フォーム](docs/screenshots/sales-form-desktop.jpg)
 
 ## Implementation Scope
 

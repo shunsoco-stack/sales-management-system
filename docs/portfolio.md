@@ -136,11 +136,11 @@
 
 生成画像や架空の UI モックではなく、現在の revision の本番 static export から撮影済みです。保存先は `docs/screenshots` です。
 
-- `landing-hero-desktop.png` / `landing-desktop.png`
-- `dashboard-desktop.png` / `dashboard-mobile.png`
-- `sales-form-desktop.png`
-- `sales-list-mobile.png`
-- `analytics-products-desktop.png`
+- `landing-hero-desktop.jpg` / `landing-desktop.jpg`
+- `dashboard-desktop.jpg` / `dashboard-mobile.jpg`
+- `sales-form-desktop.jpg`
+- `sales-list-mobile.jpg`
+- `analytics-products-desktop.jpg`
 
 1. `/dashboard` — KPI、期間切替、売上・件数推移、支払方法構成が同時に見えるデスクトップ
 2. `/sales/form` — 2 明細、割引、8% / 10% 税率、リアルタイム金額確認
