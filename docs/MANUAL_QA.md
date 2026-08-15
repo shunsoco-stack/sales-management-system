@@ -372,3 +372,20 @@ npm run seed -- --project demo-sales-management-local --dry-run --reference-date
 - [x] README、ポートフォリオ情報、実装内容が一致している
 
 判定: ローカル公開候補として条件付き合格。Firebase 実プロジェクトでの認証・Rules / Index デプロイ、CSV 実ファイル取込、印刷、公開 URL / GitHub URL の確認は公開前に必要です。
+
+## 公開デプロイ追補（2026-08-15）
+
+2026-08-08 の履歴は当時の記録として保持し、Vercel 公開後に次を追加確認しました。
+
+- [x] Vercel Production deployment が `READY` になり、安定 URL へ alias された
+- [x] ランディングページと `/demo/` が未認証 HTTP アクセスで `200` を返す
+- [x] `/dashboard/` と `/sales/form/` の静的エントリが `200` を返す
+- [x] 実ブラウザで「デモを開始」からダッシュボードへ遷移する
+- [x] KPI、グラフ、最近の取引、売上登録フォーム、金額確認が描画される
+- [x] 確認中のブラウザコンソール warning / error が 0 件
+- [x] `X-Content-Type-Options`、`X-Frame-Options`、`Referrer-Policy`、`Permissions-Policy` を確認
+- [x] 公開デモ URL、GitHub URL、GitHub repository homepage を確認
+
+公開デモ: <https://sales-management-system-three-sage.vercel.app/demo/>
+
+判定: ブラウザ内デモの外部公開は合格。Firebase 実データモードは未接続であり、公開 URL では提供しません。
