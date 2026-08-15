@@ -4,11 +4,12 @@
 
 日々の売上を整数円で正確に記録し、店舗・担当者・商品・顧客・支払方法の視点へ集計して、経営判断に使える情報へ変換する Web 業務システムです。登録不要のブラウザ内デモと、Firebase Authentication / Cloud Firestore を使う実データモードを備えています。
 
-> 画面に表示される人物、会社、店舗、連絡先、取引はすべて架空です。公開デモURLとGitHubリポジトリは公開準備中です。
+> 画面に表示される人物、会社、店舗、連絡先、取引はすべて架空です。公開デモURLは準備中で、GitHubリポジトリは公開済みです。
 
 ## Demo
 
 - 公開デモURL：未公開
+- GitHub：<https://github.com/shunsoco-stack/sales-management-system>
 - ローカル確認：`npm run dev`の後、`http://localhost:3000/demo`を開く
 
 Demo Modeの変更は閲覧者のブラウザ内に保存され、Firebaseの共有データへは書き込みません。

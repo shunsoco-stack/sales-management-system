@@ -10,7 +10,7 @@
 | 想定ユーザー | 小売、サロン、美容室、飲食、スクール、営業会社、サービス業、EC、フリーランス、小規模〜中規模企業 |
 | 対応プラットフォーム | Web。PC、タブレット、スマートフォンのレスポンシブ対応 |
 | デモ URL | 未設定。`NEXT_PUBLIC_DEMO_URL` の確定値なし |
-| GitHub URL | 未設定。`NEXT_PUBLIC_GITHUB_URL` の確定値なし |
+| GitHub URL | <https://github.com/shunsoco-stack/sales-management-system> |
 | 開発状況 | ローカル実装・品質ゲート完了。本番 static export の主要画面とレスポンシブ表示を実ブラウザ確認し、掲載用スクリーンショットを撮影済み。Firebase 実接続、公開デプロイ、URL 確定は未実施 |
 
 表示される人物、会社、店舗、連絡先、取引はすべて架空です。
@@ -96,7 +96,7 @@
 ## 実装上の現在の制約
 
 - 1 取引の明細は最大 2 件。Rules 内で明細式と親合計を厳密検証する現行境界
-- 公開デモ URL、GitHub URL、Firebase 本番プロジェクトは未設定
+- 公開デモ URLとFirebase本番プロジェクトは未設定。GitHub URLは公開済み
 - Firestore 画面集計は 1,000 売上の購読上限内
 - 日次・月次集計は seed のみで、通常の売上操作では自動更新しない
 - Firebase モードの顧客購入指標を Firestore へ永続更新するサーバー処理は未実装。画面は購読中売上から派生値を再計算

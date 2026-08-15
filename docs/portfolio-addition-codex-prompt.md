@@ -145,10 +145,10 @@ PNG が必要なら既存の 192px / 512px ファイルを使用してくださ�
 
 ## URL の扱い
 
-現時点の一次情報では、次はどちらも未設定です。
+現時点の一次情報では、公開デモURLは未設定で、GitHub URLは公開済みです。
 
 - デモ URL: 未設定（`NEXT_PUBLIC_DEMO_URL` に確定値なし）
-- GitHub URL: 未設定（`NEXT_PUBLIC_GITHUB_URL` に確定値なし）
+- GitHub URL: `https://github.com/shunsoco-stack/sales-management-system`
 
 作業時に環境変数、デプロイ結果、ユーザー提供値、既存メタデータを確認してください。確定値が確認できた場合だけリンクを追加し、実際に開いて確認してください。確認できない場合は「未公開」または既存サイトの未公開表現へ合わせ、`#`、仮ドメイン、推測 URL、リンク切れのボタンを作らないでください。
 
