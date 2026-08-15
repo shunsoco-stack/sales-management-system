@@ -249,8 +249,8 @@ npm run dev
 | `FIREBASE_SERVICE_ACCOUNT_JSON` | seed 用サービスアカウント JSON 本文 | 秘密情報 |
 | `FIREBASE_PROJECT_ID` | seed / Admin SDK 用 Project ID 補助値 | サーバー側 |
 | `DEMO_SEED_PASSWORD` | seed が作る 4 Auth ユーザーの共通パスワード | 秘密情報 |
-| `NEXT_PUBLIC_DEMO_URL` | ポートフォリオ公開後のデモ URL | クライアントへ埋込 |
-| `NEXT_PUBLIC_GITHUB_URL` | ポートフォリオ公開後の GitHub URL | クライアントへ埋込 |
+| `NEXT_PUBLIC_DEMO_URL` | 公開デモ URL | クライアントへ埋込 |
+| `NEXT_PUBLIC_GITHUB_URL` | 公開 GitHub URL | クライアントへ埋込 |
 
 Web SDK の初期化判定には API key、Auth domain、Project ID、App ID の 4 値が必要です。`NEXT_PUBLIC_*` は build 成果物へ入るため、サービスアカウントやパスワードを絶対に設定しないでください。
 
