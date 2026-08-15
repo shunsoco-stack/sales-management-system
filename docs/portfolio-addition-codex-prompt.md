@@ -145,9 +145,9 @@ PNG が必要なら既存の 192px / 512px ファイルを使用してくださ�
 
 ## URL の扱い
 
-現時点の一次情報では、公開デモURLは未設定で、GitHub URLは公開済みです。
+現時点の一次情報では、公開デモURLとGitHub URLはいずれも確定済みです。
 
-- デモ URL: 未設定（`NEXT_PUBLIC_DEMO_URL` に確定値なし）
+- デモ URL: `https://sales-management-system-three-sage.vercel.app/demo/`
 - GitHub URL: `https://github.com/shunsoco-stack/sales-management-system`
 
 作業時に環境変数、デプロイ結果、ユーザー提供値、既存メタデータを確認してください。確定値が確認できた場合だけリンクを追加し、実際に開いて確認してください。確認できない場合は「未公開」または既存サイトの未公開表現へ合わせ、`#`、仮ドメイン、推測 URL、リンク切れのボタンを作らないでください。
@@ -160,7 +160,7 @@ PNG が必要なら既存の 192px / 512px ファイルを使用してくださ�
 - Firebase 売上更新に追従して顧客購入指標を Firestore へ永続化するサーバー更新（画面内の派生再計算は実装済み）
 - カテゴリ管理 UI、支払方法管理 UI
 - PDF ファイル生成（ブラウザ印刷のみ実装）
-- 公開デモ URL、GitHub URL、Firebase 本番プロジェクト
+- Firebase 本番プロジェクト（公開URLはブラウザ内デモとして運用）
 
 担当者マスタの `role` は業務上の表示属性で、Firebase ユーザーの `users.role` とは連動しません。Firebase の売上 CSV 取込は 4 売上単位で commit し、各 commit は原子的ですがファイル全体は原子的ではありません。
 

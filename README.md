@@ -4,11 +4,12 @@
 
 日々の売上を整数円で正確に記録し、店舗・担当者・商品・顧客・支払方法の視点へ集計して、経営判断に使える情報へ変換する Web 業務システムです。登録不要のブラウザ内デモと、Firebase Authentication / Cloud Firestore を使う実データモードを備えています。
 
-> 画面に表示される人物、会社、店舗、連絡先、取引はすべて架空です。公開デモURLは準備中で、GitHubリポジトリは公開済みです。
+> 画面に表示される人物、会社、店舗、連絡先、取引はすべて架空です。公開デモは登録不要で操作できます。
 
 ## Demo
 
-- 公開デモURL：未公開
+- 公開デモ：<https://sales-management-system-three-sage.vercel.app/demo/>
+- ランディングページ：<https://sales-management-system-three-sage.vercel.app/>
 - GitHub：<https://github.com/shunsoco-stack/sales-management-system>
 - ローカル確認：`npm run dev`の後、`http://localhost:3000/demo`を開く
 
@@ -397,7 +398,7 @@ npm run hosting:deploy -- --project <PROJECT_ID>
 npm run firebase:deploy -- --project <PROJECT_ID>
 ```
 
-公開前に、Authentication の承認済みドメイン、Rules、Indexes、公開 URL、リンク、デモ表示、コンソールエラーを確認してください。公開 URL は `.env.local` の `NEXT_PUBLIC_DEMO_URL` / `NEXT_PUBLIC_GITHUB_URL` と [docs/portfolio.md](docs/portfolio.md) を確定値へ更新します。
+Firebase実データモードを公開する場合は、Authentication の承認済みドメイン、Rules、Indexes、リンク、コンソールエラーを確認してください。現在のVercel公開デモはFirebase設定を持たず、ブラウザ内デモだけを提供します。
 
 ## Security / Privacy
 
@@ -417,7 +418,7 @@ npm run firebase:deploy -- --project <PROJECT_ID>
 - ブラウザ印刷には対応するが、PDF ファイル生成は未実装
 - 売上一覧エクスポートと売上インポートは用途が異なり、直接の往復変換には非対応
 - Firebase の売上 CSV 取込は 4 売上単位で commit するため、ファイル全体では原子的でない
-- 公開デモURLとFirebase本番プロジェクトは未確定。GitHubリポジトリは公開済み
+- 公開デモはVercelへデプロイ済み。Firebase本番プロジェクトは未設定で、公開URLではブラウザ内デモのみ提供
 
 ## 今後の拡張案
 
